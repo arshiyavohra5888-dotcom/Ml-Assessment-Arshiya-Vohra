@@ -55,3 +55,27 @@ To handle this, I would:
 - Use techniques like SMOTE or class weights in the model.
 - Or oversample the transactions that had promotions.
 - Also create a separate feature that clearly flags “no promotion” so the model can learn its baseline effect.
+
+
+## B3. Model Evaluation and Deployment
+
+(a) Since we have monthly store-level data spanning three years, I would use a **temporal train-test split**. I would train the model on the first two years (or first 80% of the time period) and test it on the most recent months.  
+
+A random split would be inappropriate here because it could put future data into the training set and past data into the test set. This would cause data leakage and make the model look unrealistically good during testing, but perform poorly in real life when predicting the future.
+
+For evaluation, I would mainly look at **RMSE** and **MAE** because our target is `items_sold` (a continuous number). I would also check **MAPE** (Mean Absolute Percentage Error) to see the error in percentage terms, which is easier for the business team to understand. In the business context, lower error means the model is giving more accurate promotion recommendations, which directly impacts sales.
+
+(b) The model is recommending different promotions for the same store (Store 12) in December vs March. To investigate this, I would look at the **feature importance** from the Random Forest model.  
+
+I would check which features have high importance in those months — for example, `is_festival` might be high in December (due to Christmas or year-end sales), while `competition_density` or weather-related factors might be different in March. I would also look at interaction effects (e.g., promotion_type × month).  
+
+I would explain to the marketing team: “The model is not confused — it’s actually smart. It learned that the same store responds differently depending on the month because of seasonal factors and external conditions. So instead of giving the same promotion every month, we should adapt based on the time of year.”
+
+(c) For deployment, I would save the trained model using `joblib` or `pickle`. Every month, a new batch of data would be prepared (with the same feature engineering steps we did during training). This new data would be passed through the same preprocessing pipeline and fed into the saved model to get promotion recommendations for all 50 stores.
+
+To monitor performance, I would:
+- Track actual `items_sold` vs model-predicted values every month.
+- Set up alerts if the error (RMSE/MAE) suddenly increases beyond a threshold.
+- Retrain the model every 3–6 months or when performance drops significantly.
+
+This way the model stays up-to-date without needing to be retrained from scratch every single month.
